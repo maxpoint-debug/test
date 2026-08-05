@@ -1,0 +1,270 @@
+// ===================== VENTAS =====================
+// Registro de ventas de equipos (nuevos y usados)
+
+// ── Formulario nueva venta ────────────────────────
+function openNewVenta() {
+el(‘mVenT’).textContent = ‘Nueva venta’;
+[‘vNom’,‘vTel’,‘vDni’,‘vDir’,‘vEmail’,‘vMod’,‘vCap’,‘vCol’,‘vImei’,‘vPrecio’,‘vNot’].forEach(function(id) {
+setVal(id, ‘’);
+});
+el(‘vPago’).value = ‘Efectivo’;
+el(‘vPartePago’).checked = false;
+el(‘vPartePagoWrap’).style.display = ‘none’;
+[‘vPpMod’,‘vPpImei’,‘vPpValor’].forEach(function(id) { setVal(id, ‘’); });
+el(‘btnSaveVenta’).disabled = false;
+el(‘btnSaveVenta’).textContent = ‘Guardar venta’;
+_ventaId = null;
+openM(‘mVen’);
+}
+
+var _ventaId = null;
+
+function saveVenta() {
+var nom = val(‘vNom’);
+var tel = val(‘vTel’);
+var mod = val(‘vMod’);
+var imei = val(‘vImei’);
+var precio = val(‘vPrecio’);
+if (!nom || !mod || !imei || !precio) {
+alert(‘Nombre, modelo, IMEI y precio son obligatorios.’);
+return;
+}
+var btn = el(‘btnSaveVenta’);
+btn.disabled = true; btn.textContent = ‘Guardando…’;
+
+var partePago = el(‘vPartePago’).checked;
+var d = {
+nombre:      nom,
+telefono:    tel,
+dni:         val(‘vDni’),
+direccion:   val(‘vDir’),
+email:       val(‘vEmail’),
+modelo:      mod,
+capacidad:   val(‘vCap’),
+color:       val(‘vCol’),
+imei:        imei,
+precio:      precio,
+pago:        el(‘vPago’).value,
+notas:       val(‘vNot’),
+parte_pago:  partePago ? ‘Si’ : ‘No’,
+pp_modelo:   partePago ? val(‘vPpMod’) : ‘’,
+pp_imei:     partePago ? val(‘vPpImei’) : ‘’,
+pp_valor:    partePago ? val(‘vPpValor’) : ‘’,
+fecha:       hoy(),
+garantia:    ‘6 meses’,
+seguimiento: ‘pendiente’,
+};
+
+if (_ventaId) {
+FB.updV(_ventaId, d, function(err) {
+btn.disabled = false; btn.textContent = ‘Guardar venta’;
+if (err) { toast(’Error: ’ + err, ‘var(–rd)’); return; }
+closeM(‘mVen’); toast(‘Venta actualizada’);
+});
+} else {
+FB.addV(d, function(err) {
+btn.disabled = false; btn.textContent = ‘Guardar venta’;
+if (err) { toast(’Error: ’ + err, ‘var(–rd)’); return; }
+closeM(‘mVen’); toast(‘Venta registrada’);
+// Si tiene parte de pago, agregar al stock automaticamente
+if (d.parte_pago === ‘Si’ && d.pp_modelo) {
+FB.addSt({
+modelo:       d.pp_modelo,
+imei:         d.pp_imei   || ‘’,
+precio_costo: d.pp_valor  || ‘’,
+precio_venta: ‘’,
+capacidad:    ‘’,
+color:        ‘’,
+detalles:     ‘’,
+notas:        ’Ingreso por parte de pago — ’ + d.nombre,
+estado:       ‘A revisar’,
+fecha:        hoy(),
+}, function() { toast(‘Equipo agregado al stock’); });
+}
+});
+}
+}
+
+function openEditVenta(id) {
+var v = VENTAS.find(function(x) { return x.id === id; });
+if (!v) return;
+_ventaId = id;
+el(‘mVenT’).textContent = ‘Editar venta’;
+setVal(‘vNom’,    v.nombre    || ‘’);
+setVal(‘vTel’,    v.telefono  || ‘’);
+setVal(‘vDni’,    v.dni       || ‘’);
+setVal(‘vDir’,    v.direccion || ‘’);
+setVal(‘vEmail’,  v.email     || ‘’);
+setVal(‘vMod’,    v.modelo    || ‘’);
+setVal(‘vCap’,    v.capacidad || ‘’);
+setVal(‘vCol’,    v.color     || ‘’);
+setVal(‘vImei’,   v.imei      || ‘’);
+setVal(‘vPrecio’, v.precio    || ‘’);
+el(‘vPago’).value = v.pago || ‘Efectivo’;
+setVal(‘vNot’,    v.notas     || ‘’);
+var pp = v.parte_pago === ‘Si’;
+el(‘vPartePago’).checked = pp;
+el(‘vPartePagoWrap’).style.display = pp ? ‘’ : ‘none’;
+if (pp) {
+setVal(‘vPpMod’,   v.pp_modelo || ‘’);
+setVal(‘vPpImei’,  v.pp_imei   || ‘’);
+setVal(‘vPpValor’, v.pp_valor  || ‘’);
+}
+el(‘btnSaveVenta’).disabled = false;
+el(‘btnSaveVenta’).textContent = ‘Guardar venta’;
+openM(‘mVen’);
+}
+
+function togglePartePago() {
+var pp = el(‘vPartePago’).checked;
+el(‘vPartePagoWrap’).style.display = pp ? ‘’ : ‘none’;
+}
+
+function eliminarVenta(id) {
+if (!confirm(‘Eliminar esta venta?’)) return;
+FB.delV(id, function(err) {
+if (err) { toast(’Error: ’ + err, ‘var(–rd)’); return; }
+toast(‘Venta eliminada’, ‘var(–rd)’);
+});
+}
+
+// ── Comprobante de venta (imprimible A5) ──────────
+function prtVenta(id) {
+var v = VENTAS.find(function(x) { return x.id === id; });
+if (!v) return;
+
+var esc2 = function(s) { return String(s||’’).replace(/&/g,’&’).replace(/</g,’<’).replace(/>/g,’>’); };
+var fmt  = function(n) { return ‘$\u202F’ + Number(n||0).toLocaleString(‘es-AR’); };
+
+var desc = esc2(v.modelo)
++ (v.capacidad ? ’ ’ + esc2(v.capacidad) : ‘’)
++ (v.color     ? ’ ’ + esc2(v.color)     : ‘’)
++ ’ \u2014 ’ + v.garantia + ’ de Garantia’;
+
+var html = ‘<!DOCTYPE html><html><head><meta charset="UTF-8">’
++ ‘<title>Comprobante Venta ’ + esc2(v.id||’’) + ‘</title>’
++ ‘<style>’
++ ‘@page{size:A5;margin:8mm}’
++ ‘body{font-family:system-ui,sans-serif;font-size:12px;color:#111;background:white;margin:0}’
++ ‘@media print{button{display:none}}’
++ ‘</style></head><body>’
+
+```
+// Header negro
++ '<div style="background:#111;padding:14px 18px 12px;border-radius:6px 6px 0 0">'
++ '<div style="height:3px;background:#F0B429;border-radius:2px;margin-bottom:12px"></div>'
++ '<table style="width:100%;border-collapse:collapse"><tr>'
++ '<td><div style="font-size:22px;font-weight:900;color:#F0B429">MaxPoint</div>'
++ '<div style="font-size:8px;color:#aaa;letter-spacing:2px;text-transform:uppercase;margin-top:2px">Tienda Apple \u2014 Taller de Celulares</div></td>'
++ '<td style="text-align:right"><div style="font-size:8px;color:#888;line-height:1.7">Av 17 y 34, Mercedes, Bs As<br>(2324) 522082</div></td>'
++ '</tr></table></div>'
+
+// Banda amarilla
++ '<div style="background:#F0B429;padding:7px 18px;display:flex;justify-content:space-between;align-items:center">'
++ '<div><div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#7a5500">Comprobante de Venta</div>'
++ '<div style="font-size:18px;font-weight:900;color:#111">VTA-' + esc2(v.id ? v.id.slice(-5).toUpperCase() : '') + '</div></div>'
++ '<div style="text-align:right"><div style="font-size:8px;color:#7a5500">Fecha: <b>' + esc2(v.fecha||'') + '</b></div></div>'
++ '</div>'
+
+// Body
++ '<div style="padding:12px 18px;background:white">'
+
+// Cliente
++ '<table style="width:100%;border-collapse:collapse;margin-bottom:12px"><tr>'
++ '<td style="vertical-align:top;width:50%;padding-right:10px;border-right:1px solid #eee">'
++ '<div style="font-size:7px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#bbb;margin-bottom:4px">Cliente</div>'
++ '<div style="font-size:14px;font-weight:800">' + esc2(v.nombre||'') + '</div>'
++ (v.telefono ? '<div style="font-size:10px;color:#555;margin-top:2px">' + esc2(v.telefono) + '</div>' : '')
++ (v.dni      ? '<div style="font-size:10px;color:#555">DNI: ' + esc2(v.dni) + '</div>' : '')
++ (v.direccion ? '<div style="font-size:10px;color:#555">' + esc2(v.direccion) + '</div>' : '')
++ '</td>'
++ '<td style="vertical-align:top;padding-left:10px">'
++ '<div style="font-size:7px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#bbb;margin-bottom:4px">Equipo vendido</div>'
++ '<div style="font-size:13px;font-weight:800">' + esc2(v.modelo||'') + (v.capacidad?' '+esc2(v.capacidad):'') + (v.color?' '+esc2(v.color):'') + '</div>'
++ '<div style="font-size:9px;color:#777;font-family:monospace;margin-top:2px">IMEI: ' + esc2(v.imei||'') + '</div>'
++ '<div style="font-size:9px;color:#2DCE89;font-weight:700;margin-top:2px">' + esc2(v.garantia||'6 meses') + ' de garantia</div>'
++ '</td>'
++ '</tr></table>'
+
+// Precio
++ '<div style="background:#f8f8f8;border-left:3px solid #F0B429;padding:8px 12px;border-radius:0 4px 4px 0;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">'
++ '<div><div style="font-size:8px;color:#aaa;text-transform:uppercase;letter-spacing:1px">Precio de venta</div>'
++ '<div style="font-size:22px;font-weight:900;color:#111">' + fmt(v.precio) + '</div></div>'
++ '<div style="font-size:10px;color:#555">' + esc2(v.pago||'Efectivo') + '</div>'
++ '</div>'
+
+// Parte de pago
++ (v.parte_pago === 'Si' && v.pp_modelo ?
+  '<div style="background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:8px 12px;margin-bottom:10px">'
+  + '<div style="font-size:7px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#0284c7;margin-bottom:4px">Equipo entregado en parte de pago</div>'
+  + '<div style="font-size:11px;font-weight:700">' + esc2(v.pp_modelo) + '</div>'
+  + (v.pp_imei  ? '<div style="font-size:9px;color:#777;font-family:monospace">IMEI: ' + esc2(v.pp_imei) + '</div>' : '')
+  + (v.pp_valor ? '<div style="font-size:11px;font-weight:700;color:#0284c7;margin-top:2px">Valor: ' + fmt(v.pp_valor) + '</div>' : '')
+  + '</div>' : '')
+
+// Texto legal
++ '<div style="font-size:8px;color:#888;line-height:1.65;border-top:1px solid #eee;padding-top:8px;margin-bottom:12px">'
++ 'Se detalló el estado en que se entrega el equipo; cualquier otro inconveniente no mencionado queda a responsabilidad del comprador. '
++ 'El equipo cuenta con <b style="color:#555">' + esc2(v.garantia||'6 meses') + ' de garantía</b> por defectos de funcionamiento. '
++ 'No aplica a golpes, humedad, mal uso ni accesorios en mal estado.'
++ '</div>'
+
+// Firma
++ '<div style="border-top:1px dashed #ddd;padding-top:10px">'
++ '<div style="font-size:7px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#bbb;margin-bottom:18px">Conformidad del comprador</div>'
++ '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:20px">'
++ '<div style="flex:1;border-bottom:1px solid #333;height:32px"></div>'
++ '<div style="font-size:8px;color:#999;white-space:nowrap">Firma y aclaracion</div>'
++ '</div></div>'
+
++ '</div>'
+
+// Pie
++ '<div style="background:#111;padding:6px 18px;border-radius:0 0 6px 6px;display:flex;justify-content:space-between">'
++ '<div style="font-size:8px;color:#555">Gracias por tu compra</div>'
++ '<div style="font-size:8px;color:#F0B429;font-weight:700">MaxPoint</div>'
++ '</div>'
+
++ '<br><button onclick="window.print()" style="width:100%;padding:10px;background:#111;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">Imprimir A5</button>'
++ '</body></html>';
+```
+
+var w = window.open(’’, ‘_blank’, ‘width=600,height=850,scrollbars=yes’);
+w.document.write(html);
+w.document.close();
+}
+
+// ── Autocomplete cliente desde historial ──────────
+function vNomSugg(q) {
+var drop = el(‘vNomDrop’);
+if (!drop) return;
+q = (q||’’).trim();
+if (q.length < 2) { drop.classList.remove(‘open’); return; }
+var ql = q.toLowerCase();
+var vistos = {}, sugs = [];
+(window.REPS || []).concat(window.VENTAS || []).forEach(function(r) {
+var n = (r.nombre||’’).trim();
+if (!n) return;
+var key = n.toLowerCase();
+if (!vistos[key] && key.includes(ql)) {
+vistos[key] = true;
+sugs.push({ nom: n, tel: r.telefono||’’ });
+}
+});
+sugs = sugs.slice(0, 8);
+if (!sugs.length) { drop.classList.remove(‘open’); return; }
+drop.innerHTML = sugs.map(function(s) {
+return ‘<div class=“cat-item” data-nom=”’ + s.nom.replace(/”/g,’"’) + ‘” data-tel=”’ + s.tel + ‘” onmousedown=“vNomElegir(this)”>’
++ ‘<span style="flex:1;font-size:13px">’ + s.nom + ‘</span>’
++ (s.tel ? ‘<span style="font-size:11px;color:var(--mu)">’ + s.tel + ‘</span>’ : ‘’)
++ ‘</div>’;
+}).join(’’);
+drop.classList.add(‘open’);
+}
+
+function vNomElegir(el) {
+setVal(‘vNom’, el.dataset.nom);
+if (el.dataset.tel) setVal(‘vTel’, el.dataset.tel);
+var drop = document.getElementById(‘vNomDrop’);
+if (drop) drop.classList.remove(‘open’);
+}
