@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>MaxPoint — Estado de tu reparación</title>
+<style>
+:root {
+  --bg:#0E0E10; --s1:#17171A; --s2:#1F1F24; --bd:#2A2A30;
+  --mu:#7A7A8A; --tx:#E8E8EC; --acc:#F0B429; --gr:#2DCE89;
+  --bl:#4E9AF1; --rd:#F25F5C; --pu:#A78BFA;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:"Segoe UI",system-ui,sans-serif;min-height:100vh}
+
+/* Header */
+.hdr{background:#111;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--acc)}
+.logo{font-size:22px;font-weight:900;color:var(--acc)}
+.logo span{font-size:11px;font-weight:400;color:var(--mu);display:block;letter-spacing:1px}
+
+/* Login */
+.login-wrap{max-width:380px;margin:60px auto;padding:0 16px}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:28px 24px}
+.card h2{font-size:18px;font-weight:800;margin-bottom:6px}
+.card p{font-size:13px;color:var(--mu);margin-bottom:24px;line-height:1.5}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--mu);margin-bottom:6px}
+.field input{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:8px;
+  padding:12px 14px;color:var(--tx);font-size:16px;outline:none;transition:border-color .15s}
+.field input:focus{border-color:var(--acc)}
+.btn-acc{width:100%;padding:13px;background:var(--acc);color:#111;border:none;border-radius:8px;
+  font-size:14px;font-weight:800;cursor:pointer;transition:opacity .15s}
+.btn-acc:hover{opacity:.9}
+.btn-acc:disabled{opacity:.5;cursor:not-allowed}
+.err{color:var(--rd);font-size:12px;margin-top:8px;text-align:center}
+
+/* Dashboard */
+.dash{max-width:600px;margin:0 auto;padding:20px 16px}
+.bienvenida{margin-bottom:20px}
+.bienvenida h2{font-size:20px;font-weight:800}
+.bienvenida p{font-size:13px;color:var(--mu);margin-top:4px}
+
+/* Reparacion card */
+.rep-card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.rep-card-hdr{padding:14px 16px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center}
+.rep-orden{font-size:13px;font-weight:800;color:var(--acc)}
+.rep-fecha{font-size:11px;color:var(--mu)}
+.rep-card-body{padding:14px 16px}
+.rep-equipo{font-size:15px;font-weight:700;margin-bottom:4px}
+.rep-falla{font-size:12px;color:var(--mu);margin-bottom:12px;line-height:1.5}
+
+/* Estado badge */
+.estado-badge{display:inline-flex;align-items:center;gap:6px;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;margin-bottom:12px}
+.est-Ingresado{background:rgba(167,139,250,.12);color:var(--pu);border:1px solid rgba(167,139,250,.25)}
+.est-Revision{background:rgba(240,180,41,.12);color:var(--acc);border:1px solid rgba(240,180,41,.25)}
+.est-EnTaller{background:rgba(78,154,241,.12);color:var(--bl);border:1px solid rgba(78,154,241,.25)}
+.est-Listo{background:rgba(45,206,137,.12);color:var(--gr);border:1px solid rgba(45,206,137,.25);font-size:14px}
+.est-Entregado{background:rgba(122,122,138,.08);color:var(--mu);border:1px solid var(--bd)}
+.est-NoAprobado{background:rgba(242,95,92,.12);color:var(--rd);border:1px solid rgba(242,95,92,.25)}
+
+/* Listo highlight */
+.listo-banner{background:rgba(45,206,137,.1);border:1px solid rgba(45,206,137,.3);border-radius:8px;padding:12px 14px;margin-bottom:12px;text-align:center}
+.listo-banner div:first-child{font-size:24px;margin-bottom:4px}
+.listo-banner div:last-child{font-size:13px;color:var(--gr);font-weight:700}
+
+/* Garantia */
+.garantia-banner{background:rgba(78,154,241,.08);border:1px solid rgba(78,154,241,.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--bl)}
+
+/* Presupuesto */
+.pres-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--bd);font-size:13px}
+.pres-row:last-child{border-bottom:none}
+.pres-lbl{color:var(--mu)}
+.pres-val{font-weight:700}
+.saldo-pendiente{color:var(--acc);font-size:15px;font-weight:900}
+.saldo-ok{color:var(--gr)}
+
+/* WA button */
+.btn-wa{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px;
+  background:rgba(37,211,102,.12);color:#25D366;border:1px solid rgba(37,211,102,.3);
+  border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;margin-top:12px;transition:background .15s}
+.btn-wa:hover{background:rgba(37,211,102,.2)}
+
+/* Historial */
+.hist-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:var(--mu);margin:24px 0 10px}
+.hist-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;
+  background:var(--s1);border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;font-size:13px}
+.hist-item-left{flex:1}
+.hist-equipo{font-weight:600}
+.hist-fecha{font-size:11px;color:var(--mu);margin-top:2px}
+.hist-est{font-size:11px;color:var(--mu)}
+
+.sep{margin:24px 0;border:none;border-top:1px solid var(--bd)}
+.logout{display:block;text-align:center;color:var(--mu);font-size:12px;cursor:pointer;margin-top:20px;padding:8px}
+.logout:hover{color:var(--tx)}
+
+.loading{text-align:center;padding:40px;color:var(--mu)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo">MaxPoint <span>estado de reparación</span></div>
+  <div style="font-size:11px;color:var(--mu)">Mercedes, Bs As</div>
+</div>
+
+<div id="loginView">
+  <div class="login-wrap">
+    <div class="card">
+      <h2>Consultá tu reparación</h2>
+      <p>Ingresá tu número de teléfono para ver el estado de tu equipo.</p>
+      <div class="field">
+        <label>Número de teléfono</label>
+        <input type="tel" id="telInput" placeholder="2324123456" inputmode="numeric"
+          onkeydown="if(event.key==='Enter') buscarCliente()"/>
+      </div>
+      <button class="btn-acc" onclick="buscarCliente()" id="btnBuscar">Ver mis reparaciones</button>
+      <div class="err" id="loginErr"></div>
+    </div>
+  </div>
+</div>
+
+<div id="dashView" style="display:none">
+  <div class="dash" id="dashContent">
+    <div class="loading">Cargando...</div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getFirestore, collection, query, where, getDocs, orderBy }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+const app = initializeApp({
+  apiKey:            "AIzaSyCw76jqobNfGKt4aH7ygv4iVz9ZAHxTiko",
+  authDomain:        "maxpoint-taller.firebaseapp.com",
+  projectId:         "maxpoint-taller",
+  storageBucket:     "maxpoint-taller.firebasestorage.app",
+  messagingSenderId: "591043101786",
+  appId:             "1:591043101786:web:b18f78627738a22d008463"
+});
+const db = getFirestore(app);
+
+window.buscarCliente = async function() {
+  var tel = document.getElementById('telInput').value.trim().replace(/\s/g,'');
+  if (!tel || tel.length < 6) {
+    document.getElementById('loginErr').textContent = 'Ingresá un número válido';
+    return;
+  }
+  var btn = document.getElementById('btnBuscar');
+  btn.disabled = true; btn.textContent = 'Buscando...';
+  document.getElementById('loginErr').textContent = '';
+
+  try {
+    // Buscar por telefono en reparaciones
+    var q = query(collection(db,'reparaciones'), where('telefono','==',tel));
+    var snap = await getDocs(q);
+    var reps = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+
+    if (!reps.length) {
+      // Intentar con formato alternativo
+      document.getElementById('loginErr').textContent = 'No encontramos reparaciones con ese número.';
+      btn.disabled = false; btn.textContent = 'Ver mis reparaciones';
+      return;
+    }
+
+    // Ordenar por fecha desc
+    reps.sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); });
+    mostrarDashboard(reps, tel);
+
+  } catch(e) {
+    document.getElementById('loginErr').textContent = 'Error al buscar. Intentá de nuevo.';
+    btn.disabled = false; btn.textContent = 'Ver mis reparaciones';
+  }
+};
+
+function mostrarDashboard(reps, tel) {
+  document.getElementById('loginView').style.display = 'none';
+  document.getElementById('dashView').style.display = '';
+
+  var nombre = reps[0].nombre || 'Cliente';
+  var activas = reps.filter(function(r){ return r.estado !== 'Entregado' && r.estado !== 'No aprobado'; });
+  var historial = reps.filter(function(r){ return r.estado === 'Entregado' || r.estado === 'No aprobado'; });
+
+  var html = '<div class="bienvenida">'
+    + '<h2>Hola, ' + esc(nombre.split(' ')[0]) + '! 👋</h2>'
+    + '<p>' + (activas.length ? activas.length + ' reparación/es en curso' : 'Sin reparaciones activas') + '</p>'
+    + '</div>';
+
+  // Reparaciones activas
+  activas.forEach(function(r) {
+    html += mkRepCard(r, true);
+  });
+
+  // Historial
+  if (historial.length) {
+    html += '<div class="hist-title">Historial de reparaciones</div>';
+    historial.forEach(function(r) {
+      html += '<div class="hist-item">'
+        + '<div class="hist-item-left">'
+        + '<div class="hist-equipo">' + esc(r.equipo||'') + (r.modelo ? ' ' + esc(r.modelo) : '') + '</div>'
+        + '<div class="hist-fecha">' + esc(r.fecha||'') + ' — ' + esc(r.orden||'') + '</div>'
+        + '</div>'
+        + '<div class="hist-est">' + estadoLabel(r.estado) + '</div>'
+        + '</div>';
+    });
+  }
+
+  html += '<hr class="sep">';
+  html += '<a href="https://wa.me/542324522082" target="_blank" class="btn-wa">&#128242; Contactar a MaxPoint</a>';
+  html += '<span class="logout" onclick="cerrarSesion()">Cerrar sesión</span>';
+
+  document.getElementById('dashContent').innerHTML = html;
+}
+
+function mkRepCard(r, activa) {
+  var estado = r.estado || 'Ingresado';
+  var estClass = 'est-' + estado.replace(/\s/g,'');
+  var listo = estado === 'Listo para retirar';
+  var entregado = estado === 'Entregado';
+  var pres = Number(r.presupuesto||0);
+  var sena = Number(r.sena||0);
+  var saldo = pres - sena;
+
+  // Garantia
+  var garHtml = '';
+  if (entregado && r.fecha) {
+    var diasDesde = Math.floor((new Date() - new Date(r.fecha.split('/').reverse().join('-'))) / 86400000);
+    var diasGar = 90 - diasDesde;
+    if (diasGar > 0) {
+      garHtml = '<div class="garantia-banner">&#9989; Garantia activa — ' + diasGar + ' dias restantes</div>';
+    }
+  }
+
+  var html = '<div class="rep-card">'
+    + '<div class="rep-card-hdr">'
+    + '<span class="rep-orden">' + esc(r.orden||'') + '</span>'
+    + '<span class="rep-fecha">' + esc(r.fecha||'') + '</span>'
+    + '</div>'
+    + '<div class="rep-card-body">'
+    + '<div class="rep-equipo">' + esc(r.equipo||'') + (r.modelo ? ' ' + esc(r.modelo) : '') + '</div>'
+    + '<div class="rep-falla">' + esc(r.falla||'') + '</div>';
+
+  if (listo) {
+    html += '<div class="listo-banner"><div>&#127881;</div><div>Tu equipo está listo para retirar!</div></div>';
+  }
+  html += garHtml;
+  html += '<div class="estado-badge ' + estClass + '">' + estadoEmoji(estado) + ' ' + esc(estado) + '</div>';
+
+  if (pres) {
+    html += '<div style="border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin-top:8px">'
+      + '<div class="pres-row"><span class="pres-lbl">Presupuesto</span><span class="pres-val">$' + pres.toLocaleString('es-AR') + '</span></div>';
+    if (sena) html += '<div class="pres-row"><span class="pres-lbl">Seña entregada</span><span class="pres-val cg" style="color:var(--gr)">- $' + sena.toLocaleString('es-AR') + '</span></div>';
+    if (r.pago === 'Pagado') {
+      html += '<div class="pres-row"><span class="pres-lbl">Estado de pago</span><span class="saldo-ok">&#10003; Pagado</span></div>';
+    } else if (saldo > 0) {
+      html += '<div class="pres-row"><span class="pres-lbl">Saldo pendiente</span><span class="saldo-pendiente">$' + saldo.toLocaleString('es-AR') + '</span></div>';
+    }
+    html += '</div>';
+  }
+
+  html += '</div></div>';
+  return html;
+}
+
+function estadoLabel(est) {
+  return estadoEmoji(est) + ' ' + (est||'');
+}
+
+function estadoEmoji(est) {
+  var map = {
+    'Ingresado':'📋', 'En revision':'🔍', 'En taller':'🔧',
+    'Listo para retirar':'✅', 'Entregado':'📦', 'No aprobado':'❌'
+  };
+  return map[est] || '📋';
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+window.cerrarSesion = function() {
+  document.getElementById('dashView').style.display = 'none';
+  document.getElementById('loginView').style.display = '';
+  document.getElementById('telInput').value = '';
+  document.getElementById('loginErr').textContent = '';
+};
+</script>
+</body>
+</html>

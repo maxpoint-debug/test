@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MaxPoint — Sistema de Taller</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<!-- ==================== PIN LOCK ==================== -->
+<div class="locksc" id="lockSc" style="display:none">
+  <div class="lockbox">
+    <div style="font-size:30px;margin-bottom:10px">📊</div>
+    <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700;margin-bottom:4px">Balance</div>
+    <div style="color:var(--mu);font-size:13px;margin-bottom:20px">PIN de acceso</div>
+    <input id="pinIn" type="password" maxlength="4" placeholder="····"
+      style="text-align:center;letter-spacing:4px;font-size:16px;width:100%;margin-bottom:10px"
+      oninput="chkPin()" onkeydown="if(event.key==='Escape')closeLock()"/>
+    <div id="pinErr" style="color:var(--rd);font-size:12px;height:16px;margin-bottom:10px"></div>
+    <button class="btn btn-g" style="width:100%" onclick="closeLock()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ==================== APP SHELL ==================== -->
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">
+      <div class="logo-t">MaxPoint</div>
+      <div class="logo-s">Mercedes — Av 17 &amp; 34</div>
+      <div class="logo-m">// sistema de taller</div>
+    </div>
+    <nav>
+      <div class="ns">Taller</div>
+      <div class="ni active" id="nav-reps" onclick="showView('reps',this)">
+        <span class="ico">🔧</span>Reparaciones
+        <span class="nb g" id="nb-l" style="display:none"></span>
+      </div>
+      <div class="ni" id="nav-rpus" onclick="showView('rpus',this)">
+        <span class="ico">📦</span>Repuestos
+        <span class="nb r" id="nb-r" style="display:none"></span>
+      </div>
+      <div class="ns">Gestion</div>
+      <div class="ni" onclick="showView('seg',this)"><span class="ico">&#128276;</span>Seguimientos<span class="nb r" id="nb-seg" style="display:none">0</span></div>
+      <div class="ni" onclick="showView('ven',this)"><span class="ico">&#128201;</span>Ventas</div>
+      <div class="ni" onclick="showView('stock',this)"><span class="ico">&#128241;</span>Stock</div>
+      <div class="ni" onclick="showView('cot',this)"><span class="ico">&#128242;</span>Cotizador</div>
+      <div class="ni" onclick="showView('cli',this)"><span class="ico">👤</span>Clientes</div>
+      <div class="ni" onclick="showView('pag',this)"><span class="ico">💰</span>Pagos</div>
+      <div class="ns">Admin</div>
+      <div class="ni" onclick="openLock()"><span class="ico">📊</span>Balance</div>
+    </nav>
+    <div class="sb">
+      <div class="sbr"><span class="sbrl">Total</span><span class="sbrv" id="sb1">—</span></div>
+      <div class="sbr"><span class="sbrl">Para retirar</span><span class="sbrv cg" id="sb2">—</span></div>
+      <div class="sbr"><span class="sbrl">Repuestos pend.</span><span class="sbrv cp" id="sb3">—</span></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div id="syncbar" class="syncbar load">
+      <div class="syncdot"></div>
+      <span id="syncmsg">Conectando con Firebase...</span>
+    </div>
+    <div class="topbar">
+      <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+      <div class="topbar-t" id="topT">Reparaciones</div>
+      <div class="topbar-r" id="topA"></div>
+    </div>
+    <div class="content" id="cnt">
+      <div class="empty"><div class="ei">⏳</div>Conectando...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODALES ==================== -->
+
+<!-- Reparacion -->
+<div class="ov" id="mForm"><div class="modal">
+  <div class="mh">
+    <div class="mt" id="mFormT">Nuevo ingreso</div>
+    <button class="mc" onclick="closeM('mForm')">✕</button>
+  </div>
+  <div id="suggBanner" class="sugg-banner" style="display:none">
+    <div style="font-size:13px;color:var(--pu)">📦 Repuesto sugerido: <span id="suggT"></span></div>
+    <button class="btn btn-pu btn-sm" onclick="confSugg()">+ Agregar</button>
+  </div>
+  <div class="fgrid">
+    <div class="f full" id="wNom">
+      <label>Nombre *</label>
+      <input id="fNom" autocomplete="off" oninput="acNom()"/>
+      <div class="acl" id="acNomL" style="display:none"></div>
+    </div>
+    <div class="f"><label>Telefono</label><input id="fTel"/></div>
+    <div class="f" id="wEq">
+      <label>Equipo *</label>
+      <input id="fEq" autocomplete="off" oninput="acEq()"/>
+      <div class="acl" id="acEqL" style="display:none"></div>
+    </div>
+    <div class="f"><label>IMEI / Serie</label><input id="fMod"/></div>
+    <div class="f"><label>Clave / PIN</label><input id="fCla" placeholder="Clave de desbloqueo"/></div>
+    <div class="f full"><label>Falla *</label><textarea id="fFal" oninput="chkSugg()"></textarea></div>
+    <div class="f"><label>Presupuesto ($)</label><input id="fPres" type="number"/></div>
+    <div class="f"><label>Sena ($)</label><input id="fSen" type="number"/></div>
+    <div class="f"><label>Estado</label>
+      <select id="fEst">
+        <option>Ingresado</option>
+        <option>En proceso</option>
+        <option>Listo</option>
+        <option>Entregado</option>
+        <option>No aprobado</option>
+        <option>Garantia</option>
+      </select>
+    </div>
+    <div class="f"><label>Pago</label>
+      <select id="fPag">
+        <option>Pendiente</option>
+        <option>Parcial</option>
+        <option>Pagado</option>
+      </select>
+    </div>
+    <div class="f"><label>Tecnico</label>
+      <select id="fTec">
+        <option value="">Sin asignar</option>
+        <option>Tomas</option>
+        <option>Matias</option>
+      </select>
+    </div>
+    <div class="f"><label>Garantia de orden</label><input id="fGar" placeholder="Ej: #0045"/></div>
+    <div class="f full" style="display:flex;align-items:center;gap:10px;padding:4px 0">
+      <input type="checkbox" id="fGremio" style="width:18px;height:18px;cursor:pointer"/>
+      <label for="fGremio" style="cursor:pointer;font-size:13px;color:var(--tx)">Cliente gremio <span style="font-size:11px;color:var(--mu)">(no suma comision)</span></label>
+    </div>
+    <div class="f full"><label>Notas</label><textarea id="fNot"></textarea></div>
+  </div>
+  <div class="fa">
+    <button class="btn btn-g" onclick="closeM('mForm')">Cancelar</button>
+    <button class="btn btn-p" id="btnSave" onclick="saveRep()">Guardar</button>
+  </div>
+</div></div>
+
+<!-- Detalle -->
+<div class="ov" id="mDet"><div class="modal modal-wide" id="mDetC"></div></div>
+
+<!-- Pago -->
+<div class="ov" id="mPago"><div class="modal" style="max-width:420px">
+  <div class="mh">
+    <div class="mt">Registrar pago</div>
+    <button class="mc" onclick="closeM('mPago')">✕</button>
+  </div>
+  <div id="mPagoC"></div>
+  <div class="fa">
+    <button class="btn btn-g" onclick="closeM('mPago')">Cancelar</button>
+    <button class="btn btn-p" onclick="confPago()">Confirmar pago</button>
+  </div>
+</div></div>
+
+<!-- Recibo -->
+<div class="ov" id="mRec"><div class="modal" style="max-width:480px">
+  <div class="mh">
+    <div class="mt">Recibo</div>
+    <button class="mc" onclick="closeM('mRec')">✕</button>
+  </div>
+  <div id="mRecC"></div>
+  <div class="fa">
+    <button class="btn btn-g" onclick="closeM('mRec')">Cerrar</button>
+    <button class="btn btn-g" onclick="prtEtiq()">🏷 Etiqueta</button>
+    <button class="btn btn-p" onclick="prtRec()">🖨️ Imprimir</button>
+  </div>
+</div></div>
+
+<!-- Repuesto -->
+<div class="ov" id="mRpu"><div class="modal">
+  <div class="mh">
+    <div class="mt" id="mRpuT">Nuevo repuesto</div>
+    <button class="mc" onclick="closeM('mRpu')">✕</button>
+  </div>
+  <div class="fgrid">
+    <!-- Buscador catalogo -->
+    <div class="f full">
+      <label>Buscar en catalogo</label>
+      <div style="position:relative" id="catWrap">
+        <input id="catQ" placeholder="Ej: Modulo 14 Pro, Bateria 13..." autocomplete="off"
+          oninput="catBuscar(this.value)" onkeydown="catKeyDown(event)"/>
+        <div id="catDrop" class="cat-drop"></div>
+      </div>
+    </div>
+    <!-- Panel costos (oculto hasta seleccionar) -->
+    <div class="f full" id="catPanel" style="display:none">
+      <div class="cat-panel">
+        <div class="cat-ph">
+          <span class="cat-ph-lbl">Del catalogo</span>
+          <span id="catTipo" class="cat-ph-tipo"></span>
+          <button class="cat-ph-clear" onclick="catLimpiar()">✕ limpiar</button>
+        </div>
+        <div class="cat-grid">
+          <div class="cat-ci"><div class="cat-cl">Costo USD</div><div class="cat-cv usd" id="catUSD">-</div></div>
+          <div class="cat-ci"><div class="cat-cl">Costo ARS</div><div class="cat-cv co" id="catARS">-</div></div>
+          <div class="cat-ci"><div class="cat-cl">Precio cliente</div><div class="cat-cv cg" id="catVenta">-</div></div>
+        </div>
+      </div>
+    </div>
+    <!-- Campos del formulario -->
+    <div class="f full"><label>Nombre repuesto *</label><input id="rpNom"/></div>
+    <div class="f"><label>Modelo equipo</label><input id="rpMod"/></div>
+    <div class="f"><label>Costo interno ($)</label><input id="rpCos" type="number"/></div>
+    <div class="f"><label>Cantidad</label><input id="rpCant" type="number" value="1" min="1" max="50" placeholder="1"/></div>
+    <div class="f"><label>Precio al cliente ($)</label><input id="rpPrecio" type="number" placeholder="Sugerido por catalogo"/></div>
+    <div class="f"><label>Estado</label>
+      <select id="rpEst">
+        <option>Esperando</option>
+        <option>Encargado</option>
+        <option>Llego</option>
+        <option>Usado</option>
+      </select>
+    </div>
+    <div class="f"><label>Orden</label><input id="rpOrd" placeholder="Ej: #0045"/></div>
+    <div class="f full"><label>Cliente</label>
+      <div style="position:relative" id="rpCliWrap">
+        <input id="rpCli" autocomplete="off" oninput="rpCliSugg(this.value)"/>
+        <div id="rpCliDrop" class="cat-drop"></div>
+      </div>
+    </div>
+    <div class="f full"><label>Notas</label><textarea id="rpNot"></textarea></div>
+  </div>
+  <div class="fa">
+    <button class="btn btn-g" onclick="closeM('mRpu')">Cancelar</button>
+    <button class="btn btn-p" id="btnSaveRpu" onclick="saveRepuesto()">Guardar</button>
+  </div>
+</div></div>
+
+<!-- Modal catalogo admin -->
+<div class="ov" id="mCat"><div class="modal">
+  <div class="mh">
+    <div class="mt">Actualizar catalogo</div>
+    <button class="mc" onclick="closeM('mCat')">✕</button>
+  </div>
+  <div class="fgrid">
+    <div class="f full">
+      <label>Lista de precios (.xlsx)</label>
+      <div class="cat-upload-area" onclick="document.getElementById('catFile').click()">
+        <div id="catUploadLabel">Tocar para seleccionar archivo Excel</div>
+        <input type="file" id="catFile" accept=".xlsx" style="display:none" onchange="catCargarExcel(this)"/>
+      </div>
+    </div>
+    <div id="catPreview" style="display:none" class="f full">
+      <div class="cat-preview-box" id="catPreviewContent"></div>
+    </div>
+    <div class="f"><label>Dolar (auto del Excel)</label><input id="catUsdVal" type="number"/></div>
+    <div class="f"><label>Multiplicador precio cliente</label><input id="catMult" type="number" step="0.1" value="3"/></div>
+    <div class="f"><label>Descuento %</label><input id="catDesc" type="number" min="0" max="100" value="0"/></div>
+  </div>
+  <div id="catBackupInfo" style="display:none;font-size:11px;color:var(--mu);padding:0 0 8px;text-align:center"></div>
+  <div class="fa">
+    <button class="btn btn-g" onclick="closeM('mCat')">Cancelar</button>
+    <button class="btn btn-p" id="btnSubirCat" onclick="catSubir()" disabled>Subir catalogo</button>
+  </div>
+</div></div>
+
+<!-- Modal Nueva/Editar Venta -->
+<div class="ov" id="mVen"><div class="modal">
+  <div class="mh">
+    <div class="mt" id="mVenT">Nueva venta</div>
+    <button class="mc" onclick="closeM('mVen')">&#10005;</button>
+  </div>
+  <div class="mb">
+    <div class="f full"><label>Nombre *</label>
+      <div style="position:relative" id="vNomWrap">
+        <input id="vNom" autocomplete="off" oninput="vNomSugg(this.value)" placeholder="Nombre del comprador"/>
+        <div id="vNomDrop" class="cat-drop"></div>
+      </div>
+    </div>
+    <div class="f"><label>Telefono</label><input id="vTel" type="tel" placeholder="2324..."/></div>
+    <div class="f"><label>DNI</label><input id="vDni" placeholder="Opcional"/></div>
+    <div class="f full"><label>Direccion</label><input id="vDir" placeholder="Opcional"/></div>
+    <div class="f full"><label>Email</label><input id="vEmail" type="email" placeholder="Opcional"/></div>
+    <div style="border-top:1px solid var(--bd);padding-top:12px;margin-top:4px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--mu);margin-bottom:10px">Equipo vendido</div>
+      <div class="f full"><label>Modelo *</label><input id="vMod" placeholder="iPhone 14 Pro"/></div>
+      <div class="f"><label>Capacidad</label><input id="vCap" placeholder="128GB"/></div>
+      <div class="f"><label>Color</label><input id="vCol" placeholder="Negro"/></div>
+      <div class="f full"><label>IMEI *</label><input id="vImei" type="number" placeholder="354001..."/></div>
+    </div>
+    <div style="border-top:1px solid var(--bd);padding-top:12px;margin-top:4px">
+      <div class="f"><label>Precio de venta *</label><input id="vPrecio" type="number" placeholder="0"/></div>
+      <div class="f"><label>Costo del equipo ($)</label><input id="vCosto" type="number" placeholder="0"/></div>
+      <div class="f"><label>Vendedor</label><select id="vVendedor"><option value="">Sin asignar</option></select></div>
+      <div class="f"><label>Canal de venta</label>
+        <select id="vCanal"><option value="">—</option><option>Mostrador</option><option>Instagram</option><option>WhatsApp</option><option>Otro</option></select>
+      </div>
+      <div class="f"><label>Forma de pago</label>
+        <select id="vPago">
+          <option>Efectivo</option>
+          <option>Transferencia</option>
+          <option>Efectivo + Transferencia</option>
+        </select>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--bd);padding-top:12px;margin-top:4px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="vPartePago" onchange="togglePartePago()"/>
+        Incluye parte de pago
+      </label>
+      <div id="vPartePagoWrap" style="display:none;margin-top:10px">
+        <div class="f full"><label>Modelo equipo entregado</label><input id="vPpMod" placeholder="iPhone 12 128GB Negro"/></div>
+        <div class="f"><label>IMEI</label><input id="vPpImei" placeholder="Opcional"/></div>
+        <div class="f"><label>Valor cotizado ($)</label><input id="vPpValor" type="number" placeholder="0"/></div>
+      </div>
+    </div>
+    <div class="f full"><label>Notas internas</label>
+      <textarea id="vNot" placeholder="Ej: equipo comprado a proveedor X..."></textarea>
+    </div>
+  </div>
+  <div class="mf">
+    <button class="btn btn-g" onclick="closeM('mVen')">Cancelar</button>
+    <button class="btn btn-p" id="btnSaveVenta" onclick="saveVenta()">Guardar venta</button>
+  </div>
+</div></div>
+
+<!-- Modal Stock -->
+<div class="ov" id="mStock"><div class="modal">
+  <div class="mh">
+    <div class="mt" id="mStockT">Agregar equipo</div>
+    <button class="mc" onclick="closeM('mStock')">&#10005;</button>
+  </div>
+  <div class="mb">
+    <div class="f full"><label>Modelo *</label><input id="sMod" placeholder="iPhone 14 Pro"/></div>
+    <div class="f"><label>Capacidad</label><input id="sCap" placeholder="128GB"/></div>
+    <div class="f"><label>Color</label><input id="sCol" placeholder="Negro"/></div>
+    <div class="f full"><label>IMEI</label><input id="sImei" placeholder="Opcional"/></div>
+    <div class="f full"><label>Detalles / Estado estetico</label>
+      <input id="sDet" placeholder="Ej: rayita en marco, 94% bateria..."/></div>
+    <div class="f"><label>Precio de venta ($)</label><input id="sPrecioVenta" type="number" placeholder="0"/></div>
+    <div class="f"><label>Costo de compra ($)</label><input id="sPrecioCosto" type="number" placeholder="0"/></div>
+    <div class="f full"><label>Estado</label>
+      <select id="sEst">
+        <option>A revisar</option>
+        <option>En reparacion</option>
+        <option>Disponible</option>
+        <option>Reservado</option>
+        <option>Prestado</option>
+        <option>Vendido</option>
+      </select>
+    </div>
+    <div class="f full"><label>Notas internas</label>
+      <textarea id="sNot" placeholder="Ej: comprado a proveedor X..."></textarea>
+    </div>
+  </div>
+  <div class="mf">
+    <button class="btn btn-g" onclick="closeM('mStock')">Cancelar</button>
+    <button class="btn btn-p" id="btnSaveStock" onclick="saveStock()">Guardar</button>
+  </div>
+</div></div>
+
+<!-- Modal Cotizador -->
+<div class="ov" id="mCot"><div class="modal">
+  <div class="mh">
+    <div class="mt">Cotizar equipo usado</div>
+    <button class="mc" onclick="closeM('mCot')">&#10005;</button>
+  </div>
+  <div class="mb">
+    <div class="f full"><label>Buscar modelo</label>
+      <div style="position:relative" id="cotWrap">
+        <input class="ac-input" id="cotQ" type="text" autocomplete="off"
+          placeholder="Ej: iPhone 14 Pro 128GB..."
+          oninput="cotBuscar(this.value)" onkeydown="cotKeyDown(event)"/>
+        <div class="cat-drop" id="cotDrop"></div>
+      </div>
+    </div>
+    <div id="cotPanel" style="display:none">
+      <div class="f"><label>Bateria %</label>
+        <input type="number" id="cotBat" value="100" min="1" max="100" oninput="cotCalcular()"
+          style="border-color:rgba(78,154,241,.4);color:var(--bl)"/></div>
+      <div class="f"><label>Estetica</label>
+        <select id="cotEstetica" onchange="cotCalcular()">
+          <option value="ok">Impecable</option>
+          <option value="leve">Detalles leves (-15 USD)</option>
+          <option value="marcado">Muy marcado (-35 USD)</option>
+        </select></div>
+      <div class="f full"><label>Pantalla</label>
+        <select id="cotPantalla" onchange="cotCalcular()">
+          <option value="ok">Ok</option>
+          <option value="rota">Rota (descuenta modulo)</option>
+        </select></div>
+      <div id="cotExtrasWrap" style="margin-top:4px"></div>
+      <button class="btn btn-g btn-sm" onclick="cotAgregarExtra()" style="width:100%;margin-top:4px;font-size:12px">+ Agregar descuento</button>
+      <div id="cotResultado" style="display:none"><div id="cotResultadoInner"></div></div>
+    </div>
+  </div>
+  <div class="mf">
+    <button class="btn btn-g" onclick="cotReset()">Limpiar</button>
+    <button class="btn btn-g" id="btnCotWA" onclick="cotAbrirWA()" style="display:none;background:rgba(37,211,102,.15);color:#25D366;border-color:rgba(37,211,102,.3)">WA</button>
+    <button class="btn btn-g" id="btnCotPrint" onclick="cotImprimir()" style="display:none">Imprimir</button>
+    <button class="btn btn-p" onclick="closeM('mCot')">Cerrar</button>
+  </div>
+</div></div>
+
+<!-- Modal WhatsApp Cotizacion -->
+<div class="ov" id="mCotWA"><div class="modal">
+  <div class="mh">
+    <div class="mt">Enviar por WhatsApp</div>
+    <button class="mc" onclick="closeM('mCotWA')">&#10005;</button>
+  </div>
+  <div class="mb">
+    <div class="f full"><label>Nombre del cliente</label><input id="waNombre" type="text" placeholder="Juan Garcia"/></div>
+    <div class="f full"><label>Telefono (con codigo de pais)</label><input id="waTel" type="tel" placeholder="5491112345678"/></div>
+  </div>
+  <div class="mf">
+    <button class="btn btn-g" onclick="closeM('mCotWA')">Cancelar</button>
+    <button class="btn btn-p" onclick="cotEnviarWA()">Enviar WA</button>
+  </div>
+</div></div>
+
+<!-- Modal Actualizar Lista Usados -->
+<div class="ov" id="mLista"><div class="modal">
+  <div class="mh">
+    <div class="mt">Actualizar lista de usados</div>
+    <button class="mc" onclick="closeM('mLista')">&#10005;</button>
+  </div>
+  <div class="mb">
+    <div class="f full"><label>Pegar lista de WhatsApp</label>
+      <textarea id="listaInput" style="height:140px;font-size:12px;font-family:monospace"
+        placeholder="Pega aca el texto de la lista del proveedor..."></textarea>
+    </div>
+    <div class="f full">
+      <button class="btn btn-g btn-sm" onclick="parsearLista()" style="width:100%">Interpretar lista</button>
+    </div>
+    <div id="listaPreview" style="display:none">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mu);margin-bottom:6px">Preview</div>
+      <div id="listaPreviewContent" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px;max-height:180px;overflow-y:auto"></div>
+    </div>
+  </div>
+  <div class="mf">
+    <button class="btn btn-g" onclick="closeM('mLista')">Cancelar</button>
+    <button class="btn btn-p" id="btnSubirLista" onclick="subirLista()" disabled>Actualizar base</button>
+  </div>
+</div></div>
+
+
+<!-- Modal Gestionar Tecnicos -->
+<div class="ov" id="mTecnicos"><div class="modal">
+  <div class="mh">
+    <div class="mt">Tecnicos y Vendedores</div>
+    <button class="mc" onclick="closeM('mTecnicos')">&#10005;</button>
+  </div>
+  <div class="mb">
+    <div style="font-size:11px;color:var(--mu);margin-bottom:12px">
+      Estos nombres aparecen en los selects de reparaciones y ventas.
+    </div>
+    <div id="tecListaWrap" style="margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px">
+      <input id="tecNuevoNom" type="text" placeholder="Nombre del tecnico/vendedor"
+        style="flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;color:var(--tx);font-size:13px;outline:none"/>
+      <button class="btn btn-g btn-sm" onclick="comAgregarTecnico()">+ Agregar</button>
+    </div>
+  </div>
+  <div class="mf">
+    <button class="btn btn-g" onclick="closeM('mTecnicos')">Cancelar</button>
+    <button class="btn btn-p" onclick="comGuardarTecnicos()">Guardar</button>
+  </div>
+</div></div>
+<!-- Diagnostico temporal v6 -->
+<div id="diag" style="position:fixed;bottom:60px;left:0;right:0;background:#1a1a2e;border-top:2px solid #F0B429;
+  padding:10px 14px;font-size:12px;font-family:monospace;color:#aaa;z-index:9999;display:none">
+  <div style="color:#F0B429;font-weight:700;margin-bottom:4px">MaxPoint v6 — Diagnostico</div>
+  <div id="diagInfo"></div>
+  <button onclick="document.getElementById('diag').style.display='none'"
+    style="margin-top:6px;background:#333;border:none;color:#aaa;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:11px">
+    Cerrar
+  </button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// Diagnostico — se activa tocando el titulo 5 veces
+var _diagTaps = 0;
+document.addEventListener('DOMContentLoaded', function() {
+  var titulo = document.getElementById('topT');
+  if (!titulo) return;
+  titulo.addEventListener('click', function() {
+    _diagTaps++;
+    if (_diagTaps >= 5) {
+      _diagTaps = 0;
+      var info = [
+        'Version: v6.0',
+        'catalogo.js: ' + (typeof openCatAdmin !== 'undefined' ? 'OK' : 'NO CARGADO'),
+        'catBuscar: ' + (typeof catBuscar !== 'undefined' ? 'OK' : 'NO CARGADO'),
+        'CATALOGO items: ' + (window.CATALOGO ? window.CATALOGO.length : 0),
+        'XLSX lib: ' + (typeof XLSX !== 'undefined' ? 'OK' : 'NO CARGADO'),
+        'SheetJS: ' + (typeof XLSX !== 'undefined' ? XLSX.version : 'ausente'),
+      ];
+      document.getElementById('diagInfo').innerHTML = info.join('<br>');
+      document.getElementById('diag').style.display = 'block';
+    }
+  });
+});
+</script>
+
+<!-- ==================== SCRIPTS ==================== -->
+<!--
+  ORDEN IMPORTANTE:
+  1. data.js    → define DATOS_HISTORICOS y EQUIPOS_APPLE
+  2. state.js   → define REPS, RPUS, window.FB (placeholders)
+  3. helpers.js → funciones puras (esc, toast, pesos, etc)
+  4. render.js  → renderReps, renderRpus, renderCli, renderPag, renderBal
+  5. modals.js  → openDet, saveRep, openPago, confPago, prtRec, etc
+  6. app.js     → showView, init
+  7. firebase.js → ES module, sobreescribe window.FB y activa onSnapshot
+-->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="js/data.js?v=21"></script>
+<script src="js/state.js?v=21"></script>
+<script src="js/helpers.js?v=21"></script>
+<script src="js/render.js?v=21"></script>
+<script src="js/modals.js?v=21"></script>
+<script src="js/catalogo.js?v=21"></script>
+<script src="js/comisiones.js?v=21"></script>
+<script src="js/seguimientos.js?v=21"></script>
+<script src="js/cotizador.js?v=21"></script>
+<script src="js/ventas.js?v=21"></script>
+<script src="js/stock.js?v=21"></script>
+<script src="js/app.js?v=21"></script>
+<script type="module" src="js/firebase.js?v=21"></script>
+
+</body>
+</html>
